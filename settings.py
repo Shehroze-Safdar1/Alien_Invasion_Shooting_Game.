@@ -10,9 +10,10 @@ class Settings:
 
         # Ship settings.
         self.ship_speed = 1.5  # Speed of the ship.
+        self.ship_limit = 3    #Number of ships for the player
 
         # Bullet settings
-        self.bullet_speed = 2.0  # Speed of the bullets.
+        self.bullet_speed = 2.5  # Speed of the bullets.
         self.bullet_width = 3  # Width of each bullet.
         self.bullet_height = 15  # Height of each bullet.
         self.bullet_color = (60, 60, 60)  # Color of the bullets.

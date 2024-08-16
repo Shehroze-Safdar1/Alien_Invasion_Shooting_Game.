@@ -1,9 +1,12 @@
 import sys
+from time import sleep
 import pygame
 from settings import Settings
 from ship import Ship
 from bullet import Bullet
+from game_stats import GameStats
 from alien import Alien
+
 
 class AlienInvasion:
     """Overall class to manage game assets and behavior."""
@@ -19,6 +22,10 @@ class AlienInvasion:
             (self.settings.screen_width, self.settings.screen_height))
         pygame.display.set_caption("Alien Invasion")  # Set the window title.
 
+        #Start the game in an active state.
+        self.game_active = True
+        #Create an instance of the GameStats class.
+        self.stats = GameStats(self)
         # Create an instance of the Ship class.
         self.ship = Ship(self)
         # Create a group to hold and manage bullets.
@@ -31,9 +38,11 @@ class AlienInvasion:
         """Start the main loop for the game."""
         while True:
             self._check_events()  # Check for any events such as key presses.
-            self.ship.update()  # Update the ship's position based on movement flags.
-            self._update_bullets()  # Update bullet positions and remove old bullets.
-            self._update_aliens()   #Update aliens position to the right
+            if self.game_active:
+              self.ship.update()  # Update the ship's position based on movement flags.
+              self._update_bullets()  # Update bullet positions and remove old bullets.
+              self._update_aliens()   #Update aliens position to the right
+              
             self._update_screen()  # Update the screen with the latest images.
             self.clock.tick(60)  # Limit the frame rate to 60 frames per second.
 
@@ -74,12 +83,25 @@ class AlienInvasion:
     def _update_bullets(self):
         """Update position of bullets and get rid of old bullets."""
         self.bullets.update()  # Update the position of all bullets.
-
         # Remove bullets that have moved off the screen.
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
+        
+        self._check_bullet_alien_collisions()
+        
 
+    def _check_bullet_alien_collisions(self):
+        '''Respond to bullet and aliens collisions'''
+        # Check for any bullet that has hit the aliens
+        # If so, get rid of the bullet and the alien.
+        collisions = pygame.sprite.groupcollide(self.bullets,self.aliens,True,True)
+        #Creating a new fleet of aliens once the previous fleet is completely destroyed.
+        if not self.aliens:
+            #Destroy existing bullets and create the new fleet.
+            self.bullets.empty()
+            self._create_fleet()
+  
     def _create_fleet(self):
         '''Create the fleet of the alien'''
         # Create an alien and keep adding aliens until there's no room left.
@@ -122,6 +144,35 @@ class AlienInvasion:
         """Check if the fleet is at an edge, then update positions."""
         self._check_fleet_edges()
         self.aliens.update()
+        # Look for alien-ship collisions:
+        if pygame.sprite.spritecollideany(self.ship,self.aliens):
+            self._ship_hit()
+        # Look for aliens hitting the bottom of the screen.
+        self._check_aliens_bottom()
+
+    def _check_aliens_bottom(self):
+        '''Check if any alien has reached the bottom of the screen'''
+        for alien in self.aliens.sprites():
+            if alien.rect.bottom >= self.settings.screen_height:
+                #Treat this the same as if ship gets hit.
+                self._ship_hit()
+                break
+
+    def _ship_hit(self):
+        '''Respond to the ship being hit by the aliens'''
+        if self.stats.ships_left > 0:
+           # Decrement the ships left.
+           self.stats.ships_left -= 1
+           # Get rid of any remaining bullets and aliens.
+           self.bullets.empty()
+           self.aliens.empty()
+           # Create a new fleet and center the ship.
+           self._create_fleet()
+           self.ship.center_ship()
+           #Pause
+           sleep(0.5)
+        else:
+            self.game_active = False
 
     def _update_screen(self):
         """Update images on the screen, and flip to the new screen."""
