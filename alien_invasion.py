@@ -7,6 +7,7 @@ from bullet import Bullet
 from game_stats import GameStats
 from alien import Alien
 from button import Button
+from scoreboard import ScoreBoard
 
 
 class AlienInvasion:
@@ -22,11 +23,12 @@ class AlienInvasion:
         self.screen = pygame.display.set_mode(
             (self.settings.screen_width, self.settings.screen_height))
         pygame.display.set_caption("Alien Invasion")  # Set the window title.
-
+        
+        #Create an instance to store the game statistics and create a scoreboard.
+        self.stats = GameStats(self)
+        self.sb    = ScoreBoard(self)
         #Start the game in an inactive state.
         self.game_active = False
-        #Create an instance of the GameStats class.
-        self.stats = GameStats(self)
         # Create an instance of the Ship class.
         self.ship = Ship(self)
         # Create a group to hold and manage bullets.
@@ -102,6 +104,9 @@ class AlienInvasion:
         # Check for any bullet that has hit the aliens
         # If so, get rid of the bullet and the alien.
         collisions = pygame.sprite.groupcollide(self.bullets,self.aliens,True,True)
+        if collisions:
+            self.stats.score += self.settings.alien_points
+            self.sb.prep_score()
         #Creating a new fleet of aliens once the previous fleet is completely destroyed.
         if not self.aliens:
             #Destroy existing bullets and create the new fleet.
@@ -194,6 +199,7 @@ class AlienInvasion:
             # Reset the game statistics.
             self.stats.reset_stats()
             self.game_active = True
+            self.sb.prep_score()
 
             # Get rid of any remaining bullets and aliens.
             self.bullets.empty()
@@ -213,6 +219,7 @@ class AlienInvasion:
             bullet.draw_bullet()  # Draw each bullet on the screen.
         self.ship.blitme()  # Draw the ship on the screen.
         self.aliens.draw(self.screen) #Draw the alien on the screen
+        self.sb.show_score() #Draw the score information.
         # Draw the play button if the game is inactive.
         if not self.game_active:
             self.play_button.draw_button()
